@@ -178,16 +178,19 @@ class Generator(object):
         return os.path.join(os.path.relpath(pdf_split[0], start_dir),
         pdf_split[1])
 
-    def _gen_toc_section(self, section):
+    def _gen_toc_section(self, section, level=3):
         for p in section.children:
             if p.is_page and p.meta != None and 'pdf' \
             in p.meta and p.meta['pdf'] == False:
                 continue
             if p.is_section:
-                h3 = self.html.new_tag('h3')
-                h3.insert(0, p.title)
-                self._toc.append(h3)
-                self._gen_toc_section(p)
+                level = level + 1
+                if level == 7:
+                    level = 6
+                heading = self.html.new_tag('h' + str(level))
+                heading.insert(0, p.title)
+                self._toc.append(heading)
+                self._gen_toc_section(p, level)
                 continue
             stoc = self._gen_toc_for_section(p.file.url, p)
             child = self.html.new_tag('div')
