@@ -72,7 +72,7 @@ class Generator(object):
             return;
         if page.is_page :
             self._page_order.append(page.file.url)
-        else :
+        elif page.children:
             uuid = str(uuid4())
             self._page_order.append(uuid)
             title = self.html.new_tag('h1',
@@ -144,6 +144,9 @@ class Generator(object):
             if n.is_page and n.meta != None and 'pdf' in n.meta \
             and n.meta['pdf'] == False:
                 continue
+            if hasattr(n, 'url'):
+                # Skip toc generation for external links
+                continue
             h3 = self.html.new_tag('h3')
             h3.insert(0, n.title)
             self._toc.append(h3)
@@ -178,24 +181,19 @@ class Generator(object):
         return os.path.join(os.path.relpath(pdf_split[0], start_dir),
         pdf_split[1])
 
-    def _gen_toc_section(self, section, level=3):
-        for p in section.children:
-            if p.is_page and p.meta != None and 'pdf' \
-            in p.meta and p.meta['pdf'] == False:
-                continue
-            if p.is_section:
-                level = level + 1
-                if level == 7:
-                    level = 6
-                heading = self.html.new_tag('h' + str(level))
-                heading.insert(0, p.title)
-                self._toc.append(heading)
-                self._gen_toc_section(p, level)
-                continue
-            stoc = self._gen_toc_for_section(p.file.url, p)
-            child = self.html.new_tag('div')
-            child.append(stoc)
-            self._toc.append(child)
+    def _gen_toc_section(self, section):
+        if section.children:  # External Links do not have children
+            for p in section.children:
+                if p.is_page and p.meta != None and 'pdf' \
+                in p.meta and p.meta['pdf'] == False:
+                    continue
+                if not hasattr(p, 'file'):
+                    # Skip external links
+                    continue
+                stoc = self._gen_toc_for_section(p.file.url, p)
+                child = self.html.new_tag('div')
+                child.append(stoc)
+                self._toc.append(child)
 
     def _gen_children(self, url, children):
         ul = self.html.new_tag('ul')
